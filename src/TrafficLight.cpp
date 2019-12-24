@@ -13,10 +13,24 @@ TrafficLightPhase MessageQueue<T>::receive()
     // FP.5a : The method receive should use std::unique_lock<std::mutex> and _condition.wait() 
     // to wait for and receive new messages and pull them from the queue using move semantics. 
     // The received object should then be returned by the receive function. 
+    
+    std::cout << "MessageQueue - receive() \n"; 
+     
     std::unique_lock<std::mutex> uLock(_mtx);
+
+    std::cout << "MessageQueue - receive() -locked  \n"; 
+
     _cond.wait(uLock, [this] { return !_queue.empty(); });
+
+    std::cout << "MessageQueue - receive() - waited  \n"; 
+
     TrafficLightPhase msg = std::move(_queue.back());    
+
+    std::cout << "MessageQueue - receive() -moved  \n"; 
+
     _queue.pop_back();
+
+    std::cout << "MessageQueue - receive() -poped back  \n"; 
 
     return msg;
 
@@ -48,8 +62,10 @@ void TrafficLight::waitForGreen()
     // runs and repeatedly calls the receive function on the message queue. 
     // Once it receives TrafficLightPhase::green, the method returns.
 
+    std::cout << "waitForGreen() \n"; 
     while(true){
         if (_queueTL->receive() == TrafficLightPhase::green){
+            std::cout << "while loop \n";
             return; 
         }
     }
@@ -81,27 +97,34 @@ void TrafficLight::cycleThroughPhases()
     // to the message queue using move semantics. The cycle duration should be a random value between 4 and 6 seconds. 
     // Also, the while-loop should use std::this_thread::sleep_for to wait 1ms between two cycles. 
 
-    std::shared_ptr<MessageQueue<int>> queue(new MessageQueue<int>);
+    std::shared_ptr<MessageQueue<TrafficLightPhase>> queue(new MessageQueue<TrafficLightPhase>);
     std::vector<std::future<void>> futures;
 
     std::chrono::time_point<std::chrono::system_clock> lastUpdate;
     lastUpdate = std::chrono::system_clock::now();
 
     std::random_device rd; 
-    int intervalToChange = 4000 + rd() % 2000; 
+    int intervalToChange = 1000 + rd() % 200; 
 
     while (true){
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
-
+    
         long timeSinceLastUpdate = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - lastUpdate).count();
+        
+        std::cout << "traffic light: " << " timeSinceLastUpdate: " << timeSinceLastUpdate << " intervalToChange: "<<intervalToChange << " current:" << _currentPhase<< " \n"; 
+        
         if (timeSinceLastUpdate > intervalToChange ){
 
-            intervalToChange = 4000 + rd() % 2000;  // randomize the interval 
-            
             std::cout << "send message queue"; 
-
-            int message = 1; //1 means switch the phase
-            //futures.emplace_back(std::async(std::launch::async, &MessageQueue<int>::send, queue, std::move(message)));
+            intervalToChange = 1000 + rd() % 200;  // randomize the interval 
+            
+            TrafficLightPhase message;
+            if (_currentPhase == TrafficLightPhase::red){ 
+                message = TrafficLightPhase::green; 
+            } else {
+                message = TrafficLightPhase::red;
+            }
+            futures.emplace_back(std::async(std::launch::async, &MessageQueue<TrafficLightPhase>::send, queue, std::move(message)));
             
 
         }

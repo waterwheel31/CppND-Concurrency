@@ -56,7 +56,7 @@ private:
     // typical behaviour methods
     void cycleThroughPhases(); 
 
-    TrafficLightPhase _currentPhase; 
+    TrafficLightPhase _currentPhase = TrafficLightPhase::green; //oK? 
     
     // FP.4b : create a private member of type MessageQueue for messages of type TrafficLightPhase 
     // and use it within the infinite loop to push each new TrafficLightPhase into it by calling 
